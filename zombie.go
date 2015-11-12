@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
+// this is the default port for talking to remote consul agents
 const CONSUL_PORT = 8500
 
 func usage(code int) {
@@ -19,10 +20,11 @@ func usage(code int) {
 }
 
 func main() {
-	serviceString := flag.String("s", "", "Limit search by service address")
+	serviceString := flag.String("s", "", "Limit search by service address (regexp)")
 	tag := flag.String("t", "", "Limit search by tag")
 	flag.Parse()
 
+	// show usage if there are not command line args
 	args := flag.Args()
 	if len(args) == 0 {
 		usage(0)
@@ -30,6 +32,7 @@ func main() {
 
 	cmd := args[0]
 	switch cmd {
+	// define a couple synonyms to "hunt" as well
 	case "hunt", "find", "search":
 		serviceList := getList(*serviceString, *tag)
 		printList(serviceList)
@@ -44,6 +47,7 @@ func main() {
 
 }
 
+// display a list of matching services
 func printList(serviceList []*api.ServiceEntry) {
 	translate := map[bool]string{
 		false: "-",
@@ -57,6 +61,7 @@ func printList(serviceList []*api.ServiceEntry) {
 	}
 }
 
+// kill those services that are failing in the passed list
 func deregister(serviceList []*api.ServiceEntry) {
 	for _, se := range serviceList {
 		if !isHealthy(se) {

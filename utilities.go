@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
+// get a client handle for a specified address (or the local agent if "")
 func getClient(address string) (*api.Client, error) {
 	config := api.DefaultConfig()
 	if address != "" {
@@ -15,6 +16,7 @@ func getClient(address string) (*api.Client, error) {
 	return api.NewClient(config)
 }
 
+// get a list of all services, limit to those matching the search criteria
 func getList(serviceString string, tag string) []*api.ServiceEntry {
 	client, err := getClient("")
 	if err != nil {
@@ -28,6 +30,7 @@ func getList(serviceString string, tag string) []*api.ServiceEntry {
 		log.Fatalf("Error getting serives from catalog: %s\n", err)
 	}
 
+	// get a handle to the health endpoint and pre-calculate the regexp
 	health := client.Health()
 	var re *regexp.Regexp
 	if serviceString != "" {
@@ -37,6 +40,7 @@ func getList(serviceString string, tag string) []*api.ServiceEntry {
 		}
 	}
 
+	// prepare a slice to hold the result list
 	seOut := make([]*api.ServiceEntry, 0)
 
 	for service, _ := range services {
