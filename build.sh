@@ -1,3 +1,3 @@
 #!/bin/bash
 
-go build -o $GOPATH/zombie
+go build -o $GOPATH/bin/zombie
