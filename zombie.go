@@ -20,12 +20,14 @@ func usage(code int) {
 }
 
 func main() {
-	serviceString := flag.String("s", "", "Limit search by service address (regexp)")
-	tag := flag.String("t", "", "Limit search by tag")
-	flag.Parse()
+	fs := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	serviceString := fs.String("s", "", "Limit search by service address (regexp)")
+	tag := fs.String("t", "", "Limit search by tag")
+	force := fs.Bool("f", false, "Force killing of all matches, including healthy services")
+	fs.Parse(os.Args[1:])
 
 	// show usage if there are not command line args
-	args := flag.Args()
+	args := fs.Args()
 	if len(args) == 0 {
 		usage(0)
 	}
@@ -39,7 +41,7 @@ func main() {
 
 	case "kill":
 		serviceList := getList(*serviceString, *tag)
-		deregister(serviceList)
+		deregister(serviceList, *force)
 
 	default:
 		usage(1)
@@ -61,10 +63,10 @@ func printList(serviceList []*api.ServiceEntry) {
 	}
 }
 
-// kill those services that are failing in the passed list
-func deregister(serviceList []*api.ServiceEntry) {
+// kill those services that are failing in the passed list, or all if force is true
+func deregister(serviceList []*api.ServiceEntry, force bool) {
 	for _, se := range serviceList {
-		if !isHealthy(se) {
+		if !isHealthy(se) || force {
 			fullAddress := fmt.Sprintf("%s:%d", se.Node.Address, CONSUL_PORT)
 			fmt.Printf("Deregistering %s: %s (%s)\n", se.Service.Service, se.Service.ID, fullAddress)
 			client, err := getClient(fullAddress)
