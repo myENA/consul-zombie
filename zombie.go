@@ -14,8 +14,8 @@ import (
 const CONSUL_PORT = 8500
 
 func usage(code int) {
-	fmt.Printf("usage: zombie (hunt|kill) [options]\n")
-	fmt.Printf("Search (hunt) or deregister (kill) services: zombie -h for options.\n")
+	fmt.Println("usage: zombie [options] (hunt|kill|search)")
+	fmt.Println("Search (hunt) or deregister (kill) services: zombie -h for options.")
 	os.Exit(code)
 }
 
