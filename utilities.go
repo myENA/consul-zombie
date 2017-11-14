@@ -4,6 +4,7 @@ import (
 	"log"
 	"regexp"
 
+	"fmt"
 	"github.com/hashicorp/consul/api"
 )
 
@@ -22,40 +23,60 @@ func getList(serviceString string, tag string) []*api.ServiceEntry {
 	if err != nil {
 		log.Fatalf("Unable to get a consul client connection: %s\n", err)
 	}
-	catalog := client.Catalog()
 
-	// services is a map[string] to slice of tags
-	services, _, err := catalog.Services(nil)
+	nodes, err := client.Agent().Members(false)
 	if err != nil {
-		log.Fatalf("Error getting serives from catalog: %s\n", err)
+		log.Fatalf("Unable to get consul lan member list: %s\n", err)
+	}
+
+	services := make(map[string]*api.AgentService)
+
+	for _, node := range nodes {
+		if role, ok := node.Tags["role"]; ok {
+			if !ok || role != "node" {
+				continue
+			}
+		}
+		c, err := getClient(fmt.Sprintf("%s:8500", node.Addr))
+		if err != nil {
+			log.Printf("Unable to connect to %s: %s", node.Addr, err)
+		} else {
+			svcs, err := c.Agent().Services()
+			if err != nil {
+				log.Fatalf("Unable to get services from agent \"%s\": %s\n", node.Addr, err)
+			}
+			for id, svc := range svcs {
+				services[id] = svc
+			}
+		}
 	}
 
 	// get a handle to the health endpoint and pre-calculate the regexp
 	health := client.Health()
 	var re *regexp.Regexp
 	if serviceString != "" {
-		re, err = regexp.Compile(serviceString)
-		if err != nil {
-			log.Fatalf("Error compiling <%s> as regexp: %s\n", serviceString, err)
-		}
+		re = regexp.MustCompile(serviceString)
 	}
 
 	// prepare a slice to hold the result list
 	seOut := make([]*api.ServiceEntry, 0)
 
-	for service, _ := range services {
+	for serviceID, service := range services {
 		match := true
 		if re != nil {
-			str := re.FindString(service)
-			match = (str != "")
+			idStr := re.FindString(serviceID)
+			nameStr := re.FindString(service.Service)
+			match = idStr != "" || nameStr != ""
 		}
 		if match {
-			seList, _, err := health.Service(service, tag, false, nil)
+			seList, _, err := health.Service(service.Service, tag, false, nil)
 			if err != nil {
 				log.Fatalf("Unable to query health status of: %s\n", err)
 			}
 			for _, se := range seList {
-				seOut = append(seOut, se)
+				if se.Service.ID == serviceID {
+					seOut = append(seOut, se)
+				}
 			}
 		}
 	}

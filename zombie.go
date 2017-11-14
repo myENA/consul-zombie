@@ -11,7 +11,7 @@ import (
 )
 
 // this is the default port for talking to remote consul agents
-const CONSUL_PORT = 8500
+const ConsulPort = 8500
 
 func usage(code int) {
 	fmt.Println("usage: zombie [options] (hunt|kill|search)")
@@ -58,8 +58,8 @@ func printList(serviceList []*api.ServiceEntry) {
 
 	for _, se := range serviceList {
 		healthy := isHealthy(se)
-		fmt.Printf("%s %s: %s - healthy=%t\n", translate[healthy],
-			se.Service.Service, se.Service.ID, healthy)
+		fmt.Printf("%s %s: %s (%s) - healthy=%t\n", translate[healthy],
+			se.Service.Service, se.Service.ID, se.Node.Address, healthy)
 	}
 }
 
@@ -67,7 +67,7 @@ func printList(serviceList []*api.ServiceEntry) {
 func deregister(serviceList []*api.ServiceEntry, force bool) {
 	for _, se := range serviceList {
 		if !isHealthy(se) || force {
-			fullAddress := fmt.Sprintf("%s:%d", se.Node.Address, CONSUL_PORT)
+			fullAddress := fmt.Sprintf("%s:%d", se.Node.Address, ConsulPort)
 			fmt.Printf("Deregistering %s: %s (%s)\n", se.Service.Service, se.Service.ID, fullAddress)
 			client, err := getClient(fullAddress)
 			if err != nil {
