@@ -4,7 +4,6 @@ import (
 	"log"
 	"regexp"
 
-	"fmt"
 	"github.com/hashicorp/consul/api"
 )
 
@@ -24,30 +23,23 @@ func getList(serviceString string, tag string) []*api.ServiceEntry {
 		log.Fatalf("Unable to get a consul client connection: %s\n", err)
 	}
 
-	nodes, err := client.Agent().Members(false)
+	serviceList, _, err := client.Catalog().Services(nil)
 	if err != nil {
-		log.Fatalf("Unable to get consul lan member list: %s\n", err)
+		log.Fatalf("Unable to get list of services from catalog: %s", err)
 	}
 
-	services := make(map[string]*api.AgentService)
+	nodeServiceMap := make(map[string]map[string]*api.CatalogService)
 
-	for _, node := range nodes {
-		if role, ok := node.Tags["role"]; ok {
-			if !ok || role != "node" {
-				continue
-			}
-		}
-		c, err := getClient(fmt.Sprintf("%s:8500", node.Addr))
+	for svc := range serviceList {
+		catsvcs, _, err := client.Catalog().Service(svc, tag, nil)
 		if err != nil {
-			log.Printf("Unable to connect to %s: %s", node.Addr, err)
-		} else {
-			svcs, err := c.Agent().Services()
-			if err != nil {
-				log.Fatalf("Unable to get services from agent \"%s\": %s\n", node.Addr, err)
+			log.Fatalf("Unable to query for service \"%s\" from catalog: %s", svc, err)
+		}
+		for _, catsvc := range catsvcs {
+			if _, ok := nodeServiceMap[catsvc.Node]; !ok {
+				nodeServiceMap[catsvc.Node] = make(map[string]*api.CatalogService)
 			}
-			for id, svc := range svcs {
-				services[id] = svc
-			}
+			nodeServiceMap[catsvc.Node][catsvc.ServiceID] = catsvc
 		}
 	}
 
@@ -61,21 +53,23 @@ func getList(serviceString string, tag string) []*api.ServiceEntry {
 	// prepare a slice to hold the result list
 	seOut := make([]*api.ServiceEntry, 0)
 
-	for serviceID, service := range services {
-		match := true
-		if re != nil {
-			idStr := re.FindString(serviceID)
-			nameStr := re.FindString(service.Service)
-			match = idStr != "" || nameStr != ""
-		}
-		if match {
-			seList, _, err := health.Service(service.Service, tag, false, nil)
-			if err != nil {
-				log.Fatalf("Unable to query health status of: %s\n", err)
+	for _, services := range nodeServiceMap {
+		for serviceID, service := range services {
+			match := true
+			if re != nil {
+				idStr := re.FindString(serviceID)
+				nameStr := re.FindString(service.ServiceName)
+				match = idStr != "" || nameStr != ""
 			}
-			for _, se := range seList {
-				if se.Service.ID == serviceID {
-					seOut = append(seOut, se)
+			if match {
+				seList, _, err := health.Service(service.ServiceName, tag, false, nil)
+				if err != nil {
+					log.Fatalf("Unable to query health status of: %s\n", err)
+				}
+				for _, se := range seList {
+					if se.Service.ID == serviceID {
+						seOut = append(seOut, se)
+					}
 				}
 			}
 		}

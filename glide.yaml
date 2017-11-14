@@ -3,3 +3,4 @@ import:
 - package: github.com/hashicorp/consul
   subpackages:
   - api
+- package: github.com/olekukonko/tablewriter

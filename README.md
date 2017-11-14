@@ -18,6 +18,8 @@ There are three invocations of this tool:
 
 The options are:
 	
+`-v` enable verbose mode
+
 `-t <tag>` limit the search to services that match the tag exactly.
 
 `-s <regexp>` limit the search to service names that match the specified regexp.
