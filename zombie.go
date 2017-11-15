@@ -118,8 +118,8 @@ func printList(serviceList []*api.ServiceEntry, v verbosityLevel) {
 			if !isHealthy {
 				table.Append([]string{
 					se.Node.Node,
-					se.Service.Service,
 					se.Service.ID,
+					se.Service.Service,
 					fmt.Sprintf("%s:%d", se.Service.Address, se.Service.Port),
 					fmt.Sprintf("healthy=%t", isHealthy),
 				})
