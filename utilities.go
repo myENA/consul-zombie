@@ -69,6 +69,7 @@ func getList(serviceString string, tag string) []*api.ServiceEntry {
 				for _, se := range seList {
 					if se.Service.ID == serviceID {
 						seOut = append(seOut, se)
+						break
 					}
 				}
 			}
