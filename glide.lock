@@ -1,15 +1,22 @@
-hash: f3a1df600beeefb6dd58f4a2d5a97def95adfb4a489ced635ff12098992afb51
-updated: 2017-01-16T13:22:11.788976616-06:00
+hash: 38fde21fcdfaca673d9579ec00feb7757b4d02f9d0bd07413f088f09735b84e4
+updated: 2017-11-14T15:00:51.969329-06:00
 imports:
 - name: github.com/hashicorp/consul
-  version: 26a0ef8c41aa2252ab4cf0844fc6470c8e1d8256
+  version: 51ea240df8476e02215d53fbfad5838bf0d44d21
   subpackages:
   - api
 - name: github.com/hashicorp/go-cleanhttp
-  version: 875fb671b3ddc66f8e2f0acc33829c8cb989a38d
+  version: 3573b8b52aa7b37b9358d966a898feb387f62437
+- name: github.com/hashicorp/go-rootcerts
+  version: 6bb64b370b90e7ef1fa532be9e591a81c3493e00
 - name: github.com/hashicorp/serf
-  version: e4ec8cc423bbe20d26584b96efbeb9102e16d05f
+  version: c20a0b1b1ea9eb8168bcdec0116688fa9254e449
   subpackages:
   - coordinate
-  - serf
+- name: github.com/mattn/go-runewidth
+  version: 97311d9f7767e3d6f422ea06661bc2c7a19e8a5d
+- name: github.com/mitchellh/go-homedir
+  version: b8bc1bf767474819792c23f32d8286a45736f1c6
+- name: github.com/olekukonko/tablewriter
+  version: a7a4c189eb47ed33ce7b35f2880070a0c82a67d4
 testImports: []

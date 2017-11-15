@@ -22,40 +22,56 @@ func getList(serviceString string, tag string) []*api.ServiceEntry {
 	if err != nil {
 		log.Fatalf("Unable to get a consul client connection: %s\n", err)
 	}
-	catalog := client.Catalog()
 
-	// services is a map[string] to slice of tags
-	services, _, err := catalog.Services(nil)
+	serviceList, _, err := client.Catalog().Services(nil)
 	if err != nil {
-		log.Fatalf("Error getting serives from catalog: %s\n", err)
+		log.Fatalf("Unable to get list of services from catalog: %s", err)
+	}
+
+	nodeServiceMap := make(map[string]map[string]*api.CatalogService)
+
+	for svc := range serviceList {
+		catsvcs, _, err := client.Catalog().Service(svc, tag, nil)
+		if err != nil {
+			log.Fatalf("Unable to query for service \"%s\" from catalog: %s", svc, err)
+		}
+		for _, catsvc := range catsvcs {
+			if _, ok := nodeServiceMap[catsvc.Node]; !ok {
+				nodeServiceMap[catsvc.Node] = make(map[string]*api.CatalogService)
+			}
+			nodeServiceMap[catsvc.Node][catsvc.ServiceID] = catsvc
+		}
 	}
 
 	// get a handle to the health endpoint and pre-calculate the regexp
 	health := client.Health()
 	var re *regexp.Regexp
 	if serviceString != "" {
-		re, err = regexp.Compile(serviceString)
-		if err != nil {
-			log.Fatalf("Error compiling <%s> as regexp: %s\n", serviceString, err)
-		}
+		re = regexp.MustCompile(serviceString)
 	}
 
 	// prepare a slice to hold the result list
 	seOut := make([]*api.ServiceEntry, 0)
 
-	for service, _ := range services {
-		match := true
-		if re != nil {
-			str := re.FindString(service)
-			match = (str != "")
-		}
-		if match {
-			seList, _, err := health.Service(service, tag, false, nil)
-			if err != nil {
-				log.Fatalf("Unable to query health status of: %s\n", err)
+	for _, services := range nodeServiceMap {
+		for serviceID, service := range services {
+			match := true
+			if re != nil {
+				idStr := re.FindString(serviceID)
+				nameStr := re.FindString(service.ServiceName)
+				match = idStr != "" || nameStr != ""
 			}
-			for _, se := range seList {
-				seOut = append(seOut, se)
+			if match {
+				seList, _, err := health.Service(service.ServiceName, tag, false, nil)
+				if err != nil {
+					log.Fatalf("Unable to query health status of: %s\n", err)
+				}
+				for _, se := range seList {
+					if se.Service.ID == serviceID {
+						seOut = append(seOut, se)
+						break
+					}
+				}
 			}
 		}
 	}
