@@ -28,23 +28,22 @@ func getList(serviceString string, tag string) []*api.ServiceEntry {
 		log.Fatalf("Unable to get list of services from catalog: %s", err)
 	}
 
-	nodeServiceMap := make(map[string]map[string]*api.CatalogService)
+	nodeServiceMap := make(map[string]map[string]*api.ServiceEntry)
 
 	for svc := range serviceList {
-		catsvcs, _, err := client.Catalog().Service(svc, tag, nil)
+		entries, _, err := client.Health().Service(svc, tag, false, nil)
 		if err != nil {
 			log.Fatalf("Unable to query for service \"%s\" from catalog: %s", svc, err)
 		}
-		for _, catsvc := range catsvcs {
-			if _, ok := nodeServiceMap[catsvc.Node]; !ok {
-				nodeServiceMap[catsvc.Node] = make(map[string]*api.CatalogService)
+		for _, entry := range entries {
+			if _, ok := nodeServiceMap[entry.Node.Node]; !ok {
+				nodeServiceMap[entry.Node.Node] = make(map[string]*api.ServiceEntry)
 			}
-			nodeServiceMap[catsvc.Node][catsvc.ServiceID] = catsvc
+			nodeServiceMap[entry.Node.Node][entry.Service.ID] = entry
 		}
 	}
 
 	// get a handle to the health endpoint and pre-calculate the regexp
-	health := client.Health()
 	var re *regexp.Regexp
 	if serviceString != "" {
 		re = regexp.MustCompile(serviceString)
@@ -58,20 +57,11 @@ func getList(serviceString string, tag string) []*api.ServiceEntry {
 			match := true
 			if re != nil {
 				idStr := re.FindString(serviceID)
-				nameStr := re.FindString(service.ServiceName)
+				nameStr := re.FindString(service.Service.ID)
 				match = idStr != "" || nameStr != ""
 			}
 			if match {
-				seList, _, err := health.Service(service.ServiceName, tag, false, nil)
-				if err != nil {
-					log.Fatalf("Unable to query health status of: %s\n", err)
-				}
-				for _, se := range seList {
-					if se.Service.ID == serviceID {
-						seOut = append(seOut, se)
-						break
-					}
-				}
+				seOut = append(seOut, service)
 			}
 		}
 	}
