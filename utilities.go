@@ -33,8 +33,8 @@ func getList(serviceString string, tag string) []*api.ServiceEntry {
 	for svc := range serviceList {
 		entries, _, err := client.Health().Service(svc, tag, false, nil)
 		if err != nil {
-			log.Fatalf("Unable to query for service \"%s\" from catalog: %s", svc, err)
-		}
+			log.Fatalf("Unable to query for service \"%s\" health: %s", svc, err)
+		} 
 		for _, entry := range entries {
 			if _, ok := nodeServiceMap[entry.Node.Node]; !ok {
 				nodeServiceMap[entry.Node.Node] = make(map[string]*api.ServiceEntry)
