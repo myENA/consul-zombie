@@ -1,22 +1,30 @@
 hash: 38fde21fcdfaca673d9579ec00feb7757b4d02f9d0bd07413f088f09735b84e4
-updated: 2017-11-14T15:00:51.969329-06:00
+updated: 2018-03-06T15:45:57.926357489-06:00
 imports:
+- name: github.com/armon/go-metrics
+  version: 783273d703149aaeb9897cf58613d5af48861c25
 - name: github.com/hashicorp/consul
-  version: 51ea240df8476e02215d53fbfad5838bf0d44d21
+  version: 9a494b5fb9c86180a5702e29c485df1507a47198
   subpackages:
   - api
 - name: github.com/hashicorp/go-cleanhttp
-  version: 3573b8b52aa7b37b9358d966a898feb387f62437
+  version: d5fe4b57a186c716b0e00b8c301cbd9b4182694d
+- name: github.com/hashicorp/go-immutable-radix
+  version: 7f3cd4390caab3250a57f30efdb2a65dd7649ecf
 - name: github.com/hashicorp/go-rootcerts
   version: 6bb64b370b90e7ef1fa532be9e591a81c3493e00
+- name: github.com/hashicorp/golang-lru
+  version: 0fb14efe8c47ae851c0034ed7a448854d3d34cf3
+  subpackages:
+  - simplelru
 - name: github.com/hashicorp/serf
-  version: c20a0b1b1ea9eb8168bcdec0116688fa9254e449
+  version: 3b250ce4404edb266330f53fcfc8ad0d0dacfae7
   subpackages:
   - coordinate
 - name: github.com/mattn/go-runewidth
-  version: 97311d9f7767e3d6f422ea06661bc2c7a19e8a5d
+  version: a9d6d1e4dc51df2130326793d49971f238839169
 - name: github.com/mitchellh/go-homedir
   version: b8bc1bf767474819792c23f32d8286a45736f1c6
 - name: github.com/olekukonko/tablewriter
-  version: a7a4c189eb47ed33ce7b35f2880070a0c82a67d4
+  version: b8a9be070da40449e501c3c4730a889e42d87a9e
 testImports: []

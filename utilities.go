@@ -57,7 +57,7 @@ func getList(serviceString string, tag string) []*api.ServiceEntry {
 		re := regexp.MustCompile(serviceString)
 		for _, services = range nodeServiceMap {
 			for serviceID, service = range services {
-				if re.FindString(serviceID) != "" || re.FindString(service.Service.ID) != "" {
+				if re.FindString(serviceID) != "" || re.FindString(service.Service.Service) != "" {
 					seOut = append(seOut, service)
 				}
 			}
