@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"regexp"
 
@@ -17,8 +18,9 @@ func getClient(address string) (*api.Client, error) {
 }
 
 // get a list of all services, limit to those matching the search criteria
-func getList(serviceString string, tag string) []*api.ServiceEntry {
-	client, err := getClient("")
+func getList(serviceString string, tag string, consulHost string, consulPort int) []*api.ServiceEntry {
+	fullAddress := fmt.Sprintf("%s:%d", consulHost, consulPort)
+	client, err := getClient(fullAddress)
 	if err != nil {
 		log.Fatalf("Unable to get a consul client connection: %s\n", err)
 	}
@@ -34,7 +36,7 @@ func getList(serviceString string, tag string) []*api.ServiceEntry {
 		entries, _, err := client.Health().Service(svc, tag, false, nil)
 		if err != nil {
 			log.Fatalf("Unable to query for service \"%s\" health: %s", svc, err)
-		} 
+		}
 		for _, entry := range entries {
 			if _, ok := nodeServiceMap[entry.Node.Node]; !ok {
 				nodeServiceMap[entry.Node.Node] = make(map[string]*api.ServiceEntry)

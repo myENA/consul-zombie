@@ -17,9 +17,15 @@ There are three invocations of this tool:
 `zombie [options] kill` - repeat the search from the hunt above but kill those services that fail at least one health check.
 
 The options are:
+
+`--help` print usage
 	
 `-v` enable verbose mode
 
 `-t <tag>` limit the search to services that match the tag exactly.
 
 `-s <regexp>` limit the search to service names that match the specified regexp.
+
+`-p <port>` set Consul port; Default is 8500.
+
+`-h <host>` set Consul host; Default is 127.0.0.1.

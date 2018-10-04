@@ -11,9 +11,6 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
-// this is the default port for talking to remote consul agents
-const ConsulPort = 8500
-
 type verbosityLevel uint8
 
 func (v verbosityLevel) is(other verbosityLevel) bool {
@@ -32,13 +29,15 @@ const (
 )
 
 func usage(code int) {
-	fmt.Println("usage: zombie [options] (hunt|kill|search)")
-	fmt.Println("Search (hunt) or deregister (kill) services: zombie -h for options.")
+	fmt.Printf("usage: %s [options] (hunt|kill|search)\n", os.Args[0])
+	fmt.Printf("Search (hunt) or deregister (kill) services: %s --help for options.\n", os.Args[0])
 	os.Exit(code)
 }
 
 func main() {
 	fs := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	consulHost := fs.String("h", "127.0.0.1", "Consul host")
+	consulPort := fs.Int("p", 8500, "Port for talking to remote consul agents")
 	serviceString := fs.String("s", "", "Limit search by service address (regexp)")
 	tag := fs.String("t", "", "Limit search by tag")
 	force := fs.Bool("f", false, "Force killing of all matches, including healthy services")
@@ -66,12 +65,12 @@ func main() {
 	switch cmd {
 	// define a couple synonyms to "hunt" as well
 	case "hunt", "find", "search":
-		serviceList := getList(*serviceString, *tag)
+		serviceList := getList(*serviceString, *tag, *consulHost, *consulPort)
 		printList(serviceList, verbosity)
 
 	case "kill":
-		serviceList := getList(*serviceString, *tag)
-		deregister(serviceList, *force)
+		serviceList := getList(*serviceString, *tag, *consulHost, *consulPort)
+		deregister(serviceList, *force, *consulPort)
 
 	default:
 		usage(1)
@@ -137,10 +136,10 @@ func printList(serviceList []*api.ServiceEntry, v verbosityLevel) {
 }
 
 // kill those services that are failing in the passed list, or all if force is true
-func deregister(serviceList []*api.ServiceEntry, force bool) {
+func deregister(serviceList []*api.ServiceEntry, force bool, consulPort int) {
 	for _, se := range serviceList {
 		if !isHealthy(se) || force {
-			fullAddress := fmt.Sprintf("%s:%d", se.Node.Address, ConsulPort)
+			fullAddress := fmt.Sprintf("%s:%d", se.Node.Address, consulPort)
 			fmt.Printf("Deregistering %s: %s (%s)\n", se.Service.Service, se.Service.ID, fullAddress)
 			client, err := getClient(fullAddress)
 			if err != nil {
