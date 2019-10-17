@@ -1,7 +1,0 @@
-package: github.com/myENA/consul-zombie
-import:
-- package: github.com/hashicorp/consul
-  version: ">=0.6.4"
-  subpackages:
-  - api
-- package: github.com/olekukonko/tablewriter
