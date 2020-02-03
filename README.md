@@ -23,6 +23,9 @@ Option      | Description
 `-f`        | Force killing of all matches, including healthy services
 `-s string` | Limit search by service address (regexp)
 `-t string` | Limit search by tag
+`-local-addr string` | Address with port of "local" agent to use to retrieve service list from (defaults to value of `CONSUL_HTTP_ADDR` env var)
+`-remote-port int` | Port to use when connecting to remote agents.  Defaults to `8500`
+`-token string` | ACL token to use in all API requests
 `-v`        | Verbose
 `-vv`       | Increased verbosity
 `-vvv`      | Super verbosity
