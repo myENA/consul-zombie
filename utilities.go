@@ -8,17 +8,20 @@ import (
 )
 
 // get a client handle for a specified address (or the local agent if "")
-func getClient(address string) (*api.Client, error) {
+func getClient(address, token string) (*api.Client, error) {
 	config := api.DefaultConfig()
 	if address != "" {
 		config.Address = address
+	}
+	if token != "" {
+		config.Token = token
 	}
 	return api.NewClient(config)
 }
 
 // get a list of all services, limit to those matching the search criteria
-func getList(serviceString string, tag string) []*api.ServiceEntry {
-	client, err := getClient("")
+func getList(serviceString, token, tag string) []*api.ServiceEntry {
+	client, err := getClient("", token)
 	if err != nil {
 		log.Fatalf("Unable to get a consul client connection: %s\n", err)
 	}
