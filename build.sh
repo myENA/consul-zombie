@@ -1,5 +1,3 @@
 #!/bin/bash
 
-glide up
-
-go build -o ${GOPATH}/bin/zombie
+GO111MODULE=on go build -o zombie

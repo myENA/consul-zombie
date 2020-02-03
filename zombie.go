@@ -12,7 +12,7 @@ import (
 )
 
 // this is the default port for talking to remote consul agents
-const ConsulPort = 8500
+const defaultPort = 8500
 
 type verbosityLevel uint8
 
@@ -25,10 +25,10 @@ func (v verbosityLevel) allows(other verbosityLevel) bool {
 }
 
 const (
-	V0 verbosityLevel = iota
-	V1
-	V2
-	V3
+	verbosityLevel0 verbosityLevel = iota
+	verbosityLevel1
+	verbosityLevel2
+	verbosityLevel3
 )
 
 func usage(code int) {
@@ -42,18 +42,23 @@ func main() {
 	serviceString := fs.String("s", "", "Limit search by service address (regexp)")
 	tag := fs.String("t", "", "Limit search by tag")
 	force := fs.Bool("f", false, "Force killing of all matches, including healthy services")
+	port := fs.Int("port", defaultPort, "Port to use when connecting to remote agents")
+	token := fs.String("token", "", "Token to use when connecting to remote agents")
 	v1 := fs.Bool("v", false, "Verbose")
 	v2 := fs.Bool("vv", false, "Increased Verbosity")
 	v3 := fs.Bool("vvv", false, "Super Verbosity")
-	fs.Parse(os.Args[1:])
+	if err := fs.Parse(os.Args[1:]); err != nil {
+		log.Printf("Error parsing args: %s", err)
+		os.Exit(1)
+	}
 
 	var verbosity verbosityLevel
 	if *v3 {
-		verbosity = V3
+		verbosity = verbosityLevel3
 	} else if *v2 {
-		verbosity = V2
+		verbosity = verbosityLevel2
 	} else if *v1 {
-		verbosity = V1
+		verbosity = verbosityLevel1
 	}
 
 	// show usage if there are not command line args
@@ -66,12 +71,12 @@ func main() {
 	switch cmd {
 	// define a couple synonyms to "hunt" as well
 	case "hunt", "find", "search":
-		serviceList := getList(*serviceString, *tag)
+		serviceList := getList(*serviceString, *token, *tag)
 		printList(serviceList, verbosity)
 
 	case "kill":
-		serviceList := getList(*serviceString, *tag)
-		deregister(serviceList, *force)
+		serviceList := getList(*serviceString, *token, *tag)
+		deregister(serviceList, *port, *token, *force)
 
 	default:
 		usage(1)
@@ -105,7 +110,7 @@ func printList(serviceList []*api.ServiceEntry, v verbosityLevel) {
 		}
 
 		switch true {
-		case v.allows(V3), v.allows(V2), v.allows(V1):
+		case v.allows(verbosityLevel3), v.allows(verbosityLevel2), v.allows(verbosityLevel1):
 			table.Append([]string{
 				se.Node.Node,
 				se.Service.ID,
@@ -137,12 +142,12 @@ func printList(serviceList []*api.ServiceEntry, v verbosityLevel) {
 }
 
 // kill those services that are failing in the passed list, or all if force is true
-func deregister(serviceList []*api.ServiceEntry, force bool) {
+func deregister(serviceList []*api.ServiceEntry, port int, token string, force bool) {
 	for _, se := range serviceList {
 		if !isHealthy(se) || force {
-			fullAddress := fmt.Sprintf("%s:%d", se.Node.Address, ConsulPort)
+			fullAddress := fmt.Sprintf("%s:%d", se.Node.Address, port)
 			fmt.Printf("Deregistering %s: %s (%s)\n", se.Service.Service, se.Service.ID, fullAddress)
-			client, err := getClient(fullAddress)
+			client, err := getClient(fullAddress, token)
 			if err != nil {
 				log.Fatalf("Unable to get consul client: %s\n", err)
 			}
