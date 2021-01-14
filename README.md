@@ -26,6 +26,7 @@ Option      | Description
 `-local-addr string` | Address with port of "local" agent to use to retrieve service list from (defaults to value of `CONSUL_HTTP_ADDR` env var)
 `-remote-port int` | Port to use when connecting to remote agents.  Defaults to `8500`
 `-token string` | ACL token to use in all API requests
+`-rate` | Optionally limits deregistration calls to -rate per minute.  Defaults to 0, or unrestricted
 `-v`        | Verbose
 `-vv`       | Increased verbosity
 `-vvv`      | Super verbosity
