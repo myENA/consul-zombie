@@ -7,6 +7,8 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"sync"
+	"time"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/olekukonko/tablewriter"
@@ -34,6 +36,10 @@ const (
 	verbosityLevel3
 )
 
+var (
+	clientMap = new(sync.Map)
+)
+
 func usage(code int) {
 	fmt.Println("usage: zombie [options] (hunt|kill|search)")
 	fmt.Println("Search (hunt) or deregister (kill) services: zombie -h for options.")
@@ -48,11 +54,17 @@ func main() {
 	localAddr := fs.String("local-addr", os.Getenv(api.HTTPAddrEnvName), "Address with port of \"local\" agent.  Used to list services.")
 	remotePort := fs.Int("remote-port", defaultPort, "Port to use when connecting to remote agents")
 	token := fs.String("token", os.Getenv(api.HTTPTokenEnvName), "ACL token.  Used in all api queries.")
+	rate := fs.Int("rate", 0, "Per-minute rate of deregistration calls.  0 means no enforced limit, calls will be executed as fast as possible.")
 	v1 := fs.Bool("v", false, "Verbose")
 	v2 := fs.Bool("vv", false, "Really verbose")
 	v3 := fs.Bool("vvv", false, "Extremely verbose")
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		log.Printf("Error parsing args: %s", err)
+		os.Exit(1)
+	}
+
+	if *rate < 0 {
+		log.Printf("rate must be >= 0")
 		os.Exit(1)
 	}
 
@@ -80,7 +92,7 @@ func main() {
 
 	case "kill":
 		serviceList := getList(*localAddr, *token, *serviceString, *tag)
-		deregister(*remotePort, *token, serviceList, *force)
+		deregister(*remotePort, *token, serviceList, *force, *rate)
 
 	default:
 		usage(1)
@@ -90,14 +102,22 @@ func main() {
 
 // get a client handle for a specified address (or the local agent if "")
 func getClient(address, token string) (*api.Client, error) {
-	config := api.DefaultConfig()
+	config := api.DefaultNonPooledConfig()
 	if address != "" {
 		config.Address = address
 	}
 	if token != "" {
 		config.Token = token
 	}
-	return api.NewClient(config)
+	key := fmt.Sprintf("%s%s", address, token)
+	if client, ok := clientMap.Load(key); ok {
+		return client.(*api.Client), nil
+	} else if client, err := api.NewClient(config); err != nil {
+		return nil, err
+	} else {
+		clientMap.Store(key, client)
+		return client, nil
+	}
 }
 
 // get a list of all services, limit to those matching the search criteria
@@ -238,11 +258,19 @@ func printList(serviceList []*api.ServiceEntry, v verbosityLevel) {
 }
 
 // kill those services that are failing in the passed list, or all if force is true
-func deregister(remotePort int, token string, serviceList []*api.ServiceEntry, force bool) {
+func deregister(remotePort int, token string, serviceList []*api.ServiceEntry, force bool, rate int) {
+	var (
+		delay time.Duration
+		timer *time.Timer
+	)
+	if rate > 0 {
+		delay = time.Duration((float64(60) / float64(rate)) * float64(time.Second))
+		timer = time.NewTimer(delay)
+	}
 	for _, se := range serviceList {
 		if !isHealthy(se) || force {
 			fullAddress := fmt.Sprintf("%s:%d", se.Node.Address, remotePort)
-			fmt.Printf("Deregistering %s: %s (%s)\n", se.Service.Service, se.Service.ID, fullAddress)
+			log.Printf("Deregistering %s: %s (%s)\n", se.Service.Service, se.Service.ID, fullAddress)
 			client, err := getClient(fullAddress, token)
 			if err != nil {
 				log.Fatalf("Unable to get consul client: %s\n", err)
@@ -252,7 +280,10 @@ func deregister(remotePort int, token string, serviceList []*api.ServiceEntry, f
 			if err != nil {
 				log.Printf("Unable to deregister: %s\n", err)
 			}
+			if rate > 0 {
+				<-timer.C
+				timer.Reset(delay)
+			}
 		}
-
 	}
 }
